@@ -22,8 +22,10 @@ import gov.nasa.jpf.JPFShell;
 import gov.nasa.jpf.util.JPFSiteUtils;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.Properties;
@@ -63,7 +65,11 @@ public class RunJPF extends Run {
   }
   
   public static void main (String[] args) {
+	  long startTime = System.nanoTime();
+	  PrintStream console = System.out;
     try {
+      
+    	
       int options = getOptions(args);
 
       if (args.length == 0 || isOptionEnabled(HELP, options)) {
@@ -85,6 +91,10 @@ public class RunJPF extends Run {
       }
 
       Config conf = new Config(args);
+      String outputPath = conf.getString("output");
+      PrintStream out = new PrintStream(new File(outputPath + "/output.txt"));
+      System.setOut(out);
+      System.setErr(out);
 
       if (isOptionEnabled(SHOW, options)) {
         conf.printEntries();
@@ -104,6 +114,7 @@ public class RunJPF extends Run {
       // note this uses a <init>(Config) ctor in the shell class if there is one, i.e. there is no need for a separate
       // start(Config,..) or re-loading the config itself
       JPFShell shell = conf.getInstance("shell", JPFShell.class);
+      
       if (shell != null) {
         shell.start( removeConfigArgs(args)); // responsible for exception handling itself
 
@@ -121,8 +132,11 @@ public class RunJPF extends Run {
       if (isOptionEnabled(DELAY_EXIT, options)) {
         delay("press any key to exit");
       }
-
       
+      long elapsedTime = System.nanoTime() - startTime;
+      System.setOut(console);
+      System.out.println("Total execution time (s): " + elapsedTime/1000000000);
+   
     } catch (NoClassDefFoundError ncfx){
       ncfx.printStackTrace();
     } catch (ClassNotFoundException cnfx){
@@ -130,7 +144,13 @@ public class RunJPF extends Run {
     } catch (InvocationTargetException ix){
       // should already be handled by JPF
       ix.getCause().printStackTrace();
-    }
+    } catch (FileNotFoundException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
+    long elapsedTime = System.nanoTime() - startTime;
+    System.setOut(console);
+    System.out.println("Total execution time (ms): " + elapsedTime/1000000);
     
   }
 
